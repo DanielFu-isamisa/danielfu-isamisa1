@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Daniel Fu</title>
+<title>Daniel Fu · Research, Robotics &amp; Art</title>
 <meta name="robots" content="noindex">
 <meta name="description" content="Daniel Fu: research, robotics and art. Applying to study data science.">
 <meta name="theme-color" content="#fbf7ee" media="(prefers-color-scheme: light)">
@@ -632,6 +632,24 @@ footer .wrap{justify-content:center;text-align:center;font-style:italic;text-tra
 .lb-thumbs button[aria-current="true"]{border-color:var(--cloth);background:var(--hi)}
 .lb-nav{border:1px solid var(--rule);border-radius:50%}
 .lb-nav:hover{background:var(--hi);color:var(--on-hi)}
+
+/* ===== polish (from the design skills): reading progress, reveals, count-ups, micro-interactions, touch targets ===== */
+.progress{position:absolute;left:0;right:0;bottom:-2px;height:2px;pointer-events:none;overflow:hidden}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--cloth),var(--hi));transform-origin:0 50%;transform:scaleX(0)}
+[data-motion="on"] .rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease var(--rd,0s),transform .75s cubic-bezier(.2,.7,.2,1) var(--rd,0s)}
+[data-motion="on"] .rv.in{opacity:1;transform:none}
+.btn,.tbtn,.p-links a.pdf,.seg button,.motion{transition:background-color .2s,color .2s,border-color .2s,transform .12s ease}
+.btn:active,.tbtn:active,.p-links a.pdf:active,.seg button:active,.motion:active{transform:translateY(1px) scale(.98)}
+@media (hover:hover){
+  .card,.feat{transition:transform .28s cubic-bezier(.2,.7,.2,1),box-shadow .28s}
+  .card:hover,.feat:hover{transform:translateY(-3px);box-shadow:0 1px 0 var(--rule),0 28px 44px -26px rgba(60,35,15,.5)}
+  .plate a.doc img,.plate.poster img{transition:transform .28s cubic-bezier(.2,.7,.2,1)}
+  .plate a.doc:hover img,.plate.poster a:hover img{transform:translateY(-3px)}
+}
+.nav a{padding:13px 0}
+.p-links a:not(.pdf){padding:10px 0}
+.lb-nav,.tbtn{min-height:44px}
+:focus-visible{outline-width:2px;outline-style:solid;outline-offset:3px}
 </style>
 </head>
 <body>
@@ -639,6 +657,7 @@ footer .wrap{justify-content:center;text-align:center;font-style:italic;text-tra
 <a class="skip" href="#about">skip to content</a>
 
 <header class="bar">
+  <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
   <div class="wrap bar-in">
     <a class="mark" href="#top" aria-label="Daniel Fu, back to top">d<span>f</span></a>
     <nav class="nav" aria-label="Sections">
@@ -1439,6 +1458,50 @@ document.getElementById('copyEmail').addEventListener('click',function(){
     heads.forEach(function(h){hio.observe(h)});
   }
   mb.addEventListener('click',function(){if(!on()){heads.forEach(function(h){h.classList.remove('pre')});if(ab)ab.classList.remove('closed','opening')}});
+})();
+</script>
+<script>
+/* polish: reading progress, staggered reveals, count-ups (all respect the motion toggle and reduced motion) */
+(function(){
+  var root=document.documentElement, mb=document.getElementById('motionBtn');
+  function on(){return root.getAttribute('data-motion')==='on'}
+  var io='IntersectionObserver' in window;
+
+  /* reading progress */
+  var bar=document.getElementById('progressBar'), ticking=false;
+  function prog(){ticking=false;var h=document.documentElement.scrollHeight-innerHeight;bar.style.transform='scaleX('+(h>0?Math.min(1,Math.max(0,scrollY/h)):0)+')'}
+  addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(prog)}},{passive:true});
+  addEventListener('resize',prog);prog();
+
+  /* staggered reveals: once per element, then hand transitions back to the element */
+  var sel='.paper,.card,.feat,.hs-awards,.iter,.book,.piece,.beyond > div,.shot,.ap > div,.out-n > div,.plate.poster';
+  var items=[].slice.call(document.querySelectorAll(sel)).filter(function(el){return !el.closest('.hero')});
+  function done(el){el.classList.remove('rv','in');el.style.removeProperty('--rd')}
+  if(on()&&io){
+    items.forEach(function(el){el.classList.add('rv')});
+    var rio=new IntersectionObserver(function(es){
+      var k=0;
+      es.forEach(function(e){if(!e.isIntersecting)return;var el=e.target;rio.unobserve(el);
+        var d=Math.min(k++,5)*0.07;el.style.setProperty('--rd',d+'s');el.classList.add('in');
+        setTimeout(function(){done(el)},(d+0.8)*1000)});
+    },{rootMargin:'0px 0px -6% 0px',threshold:0.08});
+    items.forEach(function(el){rio.observe(el)});
+  }
+
+  /* count-ups for whole-number stats */
+  var nums=[].slice.call(document.querySelectorAll('.plate-n,.feat-n b,.out-n b')).filter(function(el){
+    var t=el.textContent.trim();return /^\d{1,3}(,\d{3})+$|^\d+$/.test(t)&&parseInt(t.replace(/,/g,''),10)>=10});
+  function fmt(n,comma){var s=String(n);return comma?s.replace(/\B(?=(\d{3})+(?!\d))/g,','):s}
+  function count(el){var t=el.textContent.trim(),comma=t.indexOf(',')>-1,end=parseInt(t.replace(/,/g,''),10),t0=null,dur=1100;
+    el.setAttribute('aria-label',t);
+    function step(ts){if(t0===null)t0=ts;var p=Math.min(1,(ts-t0)/dur),e=1-Math.pow(1-p,3);el.textContent=fmt(Math.round(end*e),comma);if(p<1)requestAnimationFrame(step);else{el.textContent=t;el.removeAttribute('aria-label')}}
+    requestAnimationFrame(step)}
+  if(on()&&io){
+    var cio=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){cio.unobserve(e.target);count(e.target)}})},{threshold:0.6});
+    nums.forEach(function(el){cio.observe(el)});
+  }
+
+  mb.addEventListener('click',function(){if(!on()){items.forEach(done)}});
 })();
 </script>
 </body>
