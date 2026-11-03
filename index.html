@@ -645,6 +645,25 @@ footer .wrap{text-transform:capitalize}
 .p-links a:not(.pdf){padding:10px 0}
 .lb-nav,.tbtn{min-height:44px}
 :focus-visible{outline-width:2px;outline-style:solid;outline-offset:3px}
+
+/* ===== side buttons for the photo and clip rows (replace the scrollbars) ===== */
+.scroller{position:relative;--sc-top:75px}
+.scroller.is-reel{--sc-top:130px}
+.scroller > .reel,.scroller > .strip{scrollbar-width:none;-ms-overflow-style:none;padding-bottom:0}
+.scroller > .reel::-webkit-scrollbar,.scroller > .strip::-webkit-scrollbar{display:none}
+.scroller::before,.scroller::after{content:"";position:absolute;top:0;bottom:0;width:56px;z-index:1;pointer-events:none;opacity:0;transition:opacity .2s ease-out}
+.scroller::before{left:0;background:linear-gradient(90deg,var(--paper),transparent)}
+.scroller::after{right:0;background:linear-gradient(270deg,var(--paper),transparent)}
+.scroller.can-prev::before,.scroller.can-next::after{opacity:1}
+.sc-btn{position:absolute;top:var(--sc-top);z-index:2;width:40px;height:40px;margin-top:-20px;border-radius:999px;border:1px solid var(--rule);
+  background:var(--plate);color:var(--ink);box-shadow:var(--lift-2);display:grid;place-items:center;cursor:pointer;padding:0;
+  transition:opacity .15s ease-out,transform .15s ease-out,background-color .15s ease-out}
+.sc-btn svg{width:16px;height:16px}
+.sc-btn.prev{left:6px}.sc-btn.next{right:6px}
+.sc-btn:active{transform:scale(.96)}
+.sc-btn.off{opacity:0;pointer-events:none}
+@media (hover:hover){.sc-btn:hover{background:var(--panel)}}
+@media (max-width:760px){.scroller{--sc-top:60px}.scroller.is-reel{--sc-top:100px}.sc-btn{width:36px;height:36px;margin-top:-18px}}
 </style>
 </head>
 <body>
@@ -1462,6 +1481,30 @@ document.getElementById('copyEmail').addEventListener('click',function(){
   }
 
   mb.addEventListener('click',function(){if(!on()){items.forEach(done)}});
+})();
+</script>
+<script>
+/* side buttons for horizontal photo and clip rows */
+(function(){
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var chev='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  [].forEach.call(document.querySelectorAll('.reel,.strip'),function(row){
+    var wrap=document.createElement('div');wrap.className='scroller'+(row.classList.contains('reel')?' is-reel':'');
+    row.parentNode.insertBefore(wrap,row);wrap.appendChild(row);
+    function mk(dir){var b=document.createElement('button');b.type='button';b.className='sc-btn '+dir;
+      b.setAttribute('aria-label',dir==='prev'?'Scroll left':'Scroll right');
+      b.innerHTML=dir==='prev'?chev:chev.replace('M10 3L5 8l5 5','M6 3l5 5-5 5');
+      b.addEventListener('click',function(){row.scrollBy({left:(dir==='prev'?-1:1)*Math.max(200,row.clientWidth*0.8),behavior:reduce?'auto':'smooth'})});
+      wrap.appendChild(b);return b}
+    var prev=mk('prev'),next=mk('next');
+    function update(){var max=row.scrollWidth-row.clientWidth-2,x=row.scrollLeft,cp=x>2,cn=x<max;
+      prev.classList.toggle('off',!cp);next.classList.toggle('off',!cn);
+      prev.tabIndex=cp?0:-1;next.tabIndex=cn?0:-1;
+      wrap.classList.toggle('can-prev',cp);wrap.classList.toggle('can-next',cn)}
+    row.addEventListener('scroll',update,{passive:true});addEventListener('resize',update);
+    [].forEach.call(row.querySelectorAll('img,video'),function(m){m.addEventListener('load',update);m.addEventListener('loadedmetadata',update)});
+    update();setTimeout(update,600);
+  });
 })();
 </script>
 </body>
